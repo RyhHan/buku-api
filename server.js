@@ -34,7 +34,10 @@ db.connect((err) => {
     }
 });
 
-// Rute untuk API buku
+// Menyajikan file static dari folder 'uploads' agar bisa diakses oleh publik
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Routes lainnya untuk API buku dan sebagainya
 app.use('/api/books', require('./routes/bookRoutes'));  // Menambahkan rute buku tanpa autentikasi
 
 // Port
