@@ -1,23 +1,35 @@
 const db = require('../config/db');
 const fs = require('fs');  // Import fs untuk menghapus file
 
-// Menambahkan Buku dengan gambar
 exports.addBook = (req, res) => {
     const { title, description, author, status } = req.body;
     const cover = req.file ? req.file.path : '';  // Mendapatkan path gambar yang di-upload
 
-    // Validasi input
-    if (!title || !description || !author || !status || !cover) {
-        return res.status(400).json({ msg: 'Please provide all fields' });
+    // Pengecekan untuk setiap field dan memberikan pesan error yang lebih spesifik
+    if (!title) {
+        return res.status(400).json({ msg: 'Title is required' });
+    }
+    if (!description) {
+        return res.status(400).json({ msg: 'Description is required' });
+    }
+    if (!author) {
+        return res.status(400).json({ msg: 'Author is required' });
+    }
+    if (!status) {
+        return res.status(400).json({ msg: 'Status is required' });
+    }
+    if (!cover) {
+        return res.status(400).json({ msg: 'Cover image is required' });
     }
 
-    // Menambah buku ke database
+    // Jika semua field sudah ada, lanjutkan untuk menambah buku ke database
     db.query('INSERT INTO books (title, description, author, status, cover) VALUES (?, ?, ?, ?, ?)', 
     [title, description, author, status, cover], (err, result) => {
         if (err) throw err;
         res.status(201).json({ message: 'Book added successfully', bookId: result.insertId });
     });
 };
+
 
 // Mengambil Buku
 exports.getBooks = (req, res) => {
