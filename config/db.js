@@ -1,12 +1,8 @@
-const mysql = require('mysql2');  // Menggunakan mysql2 untuk koneksi MariaDB
+const mysql = require('mysql2');
+require('dotenv').config();  // Memuat variabel lingkungan dari .env
 
-// Membuat koneksi ke database MySQL/MariaDB
-const db = mysql.createConnection({
-    host: 'localhost',      // Ganti dengan host MariaDB Anda (misalnya localhost)
-    user: 'root',           // Ganti dengan username MariaDB Anda
-    password: '',           // Ganti dengan password MariaDB Anda
-    database: 'buku_api'    // Ganti dengan nama database Anda
-});
+// Menggunakan URL koneksi dari variabel lingkungan
+const db = mysql.createConnection(process.env.DB_URL);
 
 // Mengecek koneksi
 db.connect((err) => {
