@@ -1,45 +1,50 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+const { verifyToken } = require('./middleware/authMiddleware');  // Impor middleware
 const app = express();
-const db = require('./config/db');  // Mengimpor koneksi database
-const bodyParser = require('body-parser');
-require('dotenv').config();
 
-// Menentukan penyimpanan untuk gambar
+// Set up multer untuk upload file
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/');  // Menyimpan gambar di folder 'uploads'
+    destination: function (req, file, cb) {
+        cb(null, 'uploads/');
     },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname));  // Menyimpan file dengan nama unik
+    filename: function (req, file, cb) {
+        cb(null, Date.now() + path.extname(file.originalname));  // Simpan dengan nama unik
     }
 });
-
-// Membuat instance Multer
 const upload = multer({ storage: storage });
 
-// Mengekspor upload agar bisa digunakan di file lain
-module.exports = upload;
-
-// Middleware
-app.use(bodyParser.json());  // Untuk parsing JSON body
-
-// Connect to Database
-db.connect((err) => {
-    if (err) {
-        console.error('Error connecting to the database:', err);
-    } else {
-        console.log('Connected to the MariaDB/MySQL database');
-    }
+// Endpoint untuk mendapatkan daftar buku
+app.get('/api/books', verifyToken, (req, res) => {  // Gunakan middleware verifyToken di sini
+    res.json(books);  // Menampilkan data buku
 });
 
-// Menyajikan file static dari folder 'uploads' agar bisa diakses oleh publik
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Endpoint untuk menambah buku
+app.post('/api/books', verifyToken, upload.single('cover'), (req, res) => {
+    const { title, description, author, status } = req.body;
+    const cover = req.file ? req.file.filename : '';
 
-// Routes lainnya untuk API buku dan sebagainya
-app.use('/api/books', require('./routes/bookRoutes'));  // Menambahkan rute buku tanpa autentikasi
+    const newBook = { id: Date.now(), title, description, author, status, cover };
+    books.push(newBook);
 
-// Port
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    res.status(201).json({ status: 'success', message: 'Book added successfully', data: newBook });
+});
+
+// Endpoint untuk menghapus buku
+app.delete('/api/books', verifyToken, (req, res) => {
+    const { id } = req.query;
+
+    const bookIndex = books.findIndex(book => book.id === parseInt(id));
+
+    if (bookIndex === -1) {
+        return res.status(404).json({ status: 'error', message: 'Book not found' });
+    }
+
+    // Hapus buku dari array
+    books.splice(bookIndex, 1);
+
+    res.json({ status: 'success', message: 'Book deleted successfully' });
+});
+
+app.listen(5000, () => console.log('Server running on port 5000'));
