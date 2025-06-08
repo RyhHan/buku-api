@@ -15,6 +15,11 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
+app.get('/api/public-books', (req, res) => {
+    // Mengambil semua buku tanpa filter userId
+    res.json(books);  // Mengembalikan semua buku
+});
+
 // Simulasi data buku (dalam aplikasi nyata ini bisa menggunakan database)
 let books = [
     { id: 1, title: 'Book Title 1', description: 'Description 1', author: 'Author 1', status: 'Not Read', cover: 'cover1.jpg', userId: 'user123' },
