@@ -6,7 +6,6 @@ const upload = require('../server');  // Mengimpor upload dari server.js
 
 // Menambah Buku dengan upload gambar
 router.post('/', verifyToken, upload.single('cover'), (req, res) => {
-    // Pastikan data buku yang dibutuhkan ada
     if (!req.body.title || !req.body.description || !req.body.author || !req.body.status) {
         return res.status(400).json({ msg: 'Please provide all fields' });
     }
@@ -51,9 +50,8 @@ router.delete('/:bookId', verifyToken, (req, res) => {
 // Mengupdate Buku dengan upload gambar
 router.put('/:bookId', verifyToken, upload.single('cover'), (req, res) => {
     const { title, description, author, status } = req.body;
-    const cover = req.file ? req.file.filename : '';
-    
-    // Validasi input data
+    const cover = req.file ? req.file.filename : '';  // Dapatkan nama file gambar baru
+
     if (!title || !description || !author || !status) {
         return res.status(400).json({ msg: 'Please provide all fields' });
     }
