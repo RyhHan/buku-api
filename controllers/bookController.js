@@ -1,6 +1,7 @@
 const db = require('../config/db');
 const fs = require('fs');  // Import fs untuk menghapus file
 
+// Menambahkan buku baru
 exports.addBook = (req, res) => {
     const { title, description, author, status } = req.body;
     const cover = req.file ? req.file.path : '';  // Mendapatkan path gambar yang di-upload
@@ -23,30 +24,37 @@ exports.addBook = (req, res) => {
     }
 
     // Jika semua field sudah ada, lanjutkan untuk menambah buku ke database
-    db.query('INSERT INTO books (title, description, author, status, cover) VALUES (?, ?, ?, ?, ?)', 
-    [title, description, author, status, cover], (err, result) => {
+    const userId = req.user.email;  // Mengambil userId dari token autentikasi
+    const query = 'INSERT INTO books (title, description, author, status, cover, userId) VALUES (?, ?, ?, ?, ?, ?)';
+    
+    db.query(query, [title, description, author, status, cover, userId], (err, result) => {
         if (err) throw err;
         res.status(201).json({ message: 'Book added successfully', bookId: result.insertId });
     });
 };
 
-
-// Mengambil Buku
+// Mengambil Buku berdasarkan UserId
 exports.getBooks = (req, res) => {
-    db.query('SELECT * FROM books', (err, result) => {
+    const userId = req.user.email;  // Mengambil userId dari token autentikasi
+    const query = 'SELECT * FROM books WHERE userId = ?';  // Mengambil buku berdasarkan userId
+    
+    db.query(query, [userId], (err, result) => {
         if (err) throw err;
-        res.json(result);  // Mengirimkan daftar buku
+        res.json(result);  // Mengirimkan daftar buku milik pengguna yang terautentikasi
     });
 };
 
-// Menghapus Buku
+// Menghapus Buku berdasarkan ID dan UserId
 exports.deleteBook = (req, res) => {
     const { bookId } = req.params;
+    const userId = req.user.email;  // Mengambil userId dari token autentikasi
 
-    db.query('SELECT cover FROM books WHERE id = ?', [bookId], (err, result) => {
+    // Menemukan buku berdasarkan bookId dan userId
+    const findQuery = 'SELECT cover FROM books WHERE id = ? AND userId = ?';
+    db.query(findQuery, [bookId, userId], (err, result) => {
         if (err) throw err;
         if (result.length === 0) {
-            return res.status(404).json({ msg: 'Book not found' });
+            return res.status(404).json({ msg: 'Book not found or unauthorized' });
         }
 
         // Menghapus file lama jika ada
@@ -59,14 +67,15 @@ exports.deleteBook = (req, res) => {
         }
 
         // Menghapus buku dari database
-        db.query('DELETE FROM books WHERE id = ?', [bookId], (err, result) => {
+        const deleteQuery = 'DELETE FROM books WHERE id = ? AND userId = ?';
+        db.query(deleteQuery, [bookId, userId], (err, result) => {
             if (err) throw err;
             res.json({ msg: 'Book deleted successfully' });
         });
     });
 };
 
-// Mengupdate Buku
+// Mengupdate Buku berdasarkan ID dan UserId
 exports.updateBook = (req, res) => {
     const { bookId } = req.params;  // Mengambil ID buku dari parameter
     const { title, description, author, status } = req.body;
@@ -76,6 +85,8 @@ exports.updateBook = (req, res) => {
     if (!title || !description || !author || !status) {
         return res.status(400).json({ msg: 'Please provide all fields' });
     }
+
+    const userId = req.user.email;  // Mengambil userId dari token autentikasi
 
     // Menyiapkan query untuk mengupdate buku
     let query = 'UPDATE books SET title = ?, description = ?, author = ?, status = ?';
@@ -87,14 +98,14 @@ exports.updateBook = (req, res) => {
         values.push(cover);
     }
 
-    query += ' WHERE id = ?';  // Menambahkan kondisi untuk buku yang akan di-update
-    values.push(bookId);
+    query += ' WHERE id = ? AND userId = ?';  // Menambahkan kondisi untuk buku yang akan di-update
+    values.push(bookId, userId);
 
     // Mengambil file lama yang akan dihapus
-    db.query('SELECT cover FROM books WHERE id = ?', [bookId], (err, result) => {
+    db.query('SELECT cover FROM books WHERE id = ? AND userId = ?', [bookId, userId], (err, result) => {
         if (err) throw err;
         if (result.length === 0) {
-            return res.status(404).json({ msg: 'Book not found' });
+            return res.status(404).json({ msg: 'Book not found or unauthorized' });
         }
 
         const oldCover = result[0].cover;
